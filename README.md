@@ -27,7 +27,7 @@ make install
       Specifies the opacity change between steps while fading in. (default 0.028)
 -O fade-out-step
       Specifies the opacity change between steps while fading out. (default 0.03)
--D fade-delta-time\n"
+-D fade-delta-time
       Specifies the time between steps in a fade in milliseconds. (default 10)
 -a
       Use automatic server-side compositing. Faster, but no special effects.

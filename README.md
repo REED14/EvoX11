@@ -12,8 +12,9 @@ make install
 ```
 
 # Usage
+```
 -d display
-      Specifies which display should be managed.\n"
+      Specifies which display should be managed.
 -r radius
       Specifies the blur radius for client-side shadows. (default 12)
  -o opacity
@@ -48,3 +49,4 @@ make install
       Specify the absolute path of background png for transparent windows.
 -R rounded-corner-radius
       Specify the radius of the rounded corners of the windows. (default 20)
+```

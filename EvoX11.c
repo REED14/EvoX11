@@ -1,3 +1,4 @@
+
 /*
  * Copyright © 2003 Keith Packard
  *
@@ -935,7 +936,7 @@ static void
 paint_all (Display *dpy, XserverRegion region)
 {
     win	*w;
-	win *c = NULL;
+    win *c = NULL;
     win	*t = NULL;
 
     if (!region)
@@ -1005,6 +1006,9 @@ paint_all (Display *dpy, XserverRegion region)
 					       CPSubwindowMode,
 					       &pa);
 	}
+
+       	w->mode = WINDOW_ARGB;
+	
 #if DEBUG_REPAINT
 	printf (" 0x%x", w->id);
 #endif
@@ -1046,10 +1050,10 @@ paint_all (Display *dpy, XserverRegion region)
 	    hei = w->a.height;
 #endif
 
-	if(w->delMaskPict = 1 && w->maskPict!=None){
+	if(w->delMaskPict == 1 && w->maskPict!=None){
 		XRenderFreePicture(dpy, w->maskPict);
 		w->maskPict = None;
-		w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius);
+		w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
 		w->delMaskPict = 0;
 	}
 
@@ -1092,7 +1096,7 @@ paint_all (Display *dpy, XserverRegion region)
 		}
 
 		if(w->maskPict == None)
-		w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius);
+		  w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
 
 		//if window is moved, don't draw it, use animation
 		if(ConfigWin==w->id && get_time_in_milliseconds()-time_conf<200 && w->windowType!=winDockAtom){
@@ -1106,8 +1110,7 @@ paint_all (Display *dpy, XserverRegion region)
 			XRenderComposite (dpy, PictOpOver, w->picture, None, rootBuffer,
 					0, 0, 0, 0,
 					x, y, wid, hei);
-			if(w->windowType==winNormalAtom)
-				w->mode = WINDOW_ARGB;
+			//if(w->windowType==winNormalAtom || w->windowType==winDesktopAtom || w->windowType != winDockAtom)
 		}
 	}
 	if (!w->borderClip)
@@ -1184,10 +1187,10 @@ paint_all (Display *dpy, XserverRegion region)
 	    hei = w->a.height;
 #endif
 
-	if(w->delMaskPict = 1 && w->maskPict!=None){
+	if(w->delMaskPict == 1 && w->maskPict!=None){
 		XRenderFreePicture(dpy, w->maskPict);
 		w->maskPict = None;
-		w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius);
+		w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
 		w->delMaskPict = 0;
 	}
 
@@ -1233,7 +1236,7 @@ paint_all (Display *dpy, XserverRegion region)
 		}
 
 		if(w->maskPict == None)
-			w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius);
+			w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
 
 		//if window is moved, don't draw it, use animation
 		if(ConfigWin==w->id && get_time_in_milliseconds()-time_conf<200)
@@ -1307,7 +1310,7 @@ paint_all (Display *dpy, XserverRegion region)
 		}
 
 		if(w->maskPict == None)
-			w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius);
+			w->maskPict = RoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, (double) w->opacity / OPAQUE, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
 		
 		//if window is moved, don't draw it, use animation
 		if(ConfigWin==w->id && get_time_in_milliseconds()-time_conf<200)
@@ -1645,7 +1648,7 @@ determine_wintype (Display *dpy, Window w)
     Window      *children = NULL;
     unsigned int nchildren;
     Atom         type;
-
+    
     type = get_wintype_prop (dpy, w);
     if (type != winNormalAtom)
 	return type;
@@ -2343,6 +2346,7 @@ main (int argc, char **argv)
     int		    o;
 	pb_addr[0] = '\0';
 
+	
     while ((o = getopt (argc, argv, "D:I:O:d:r:o:l:t:B:R:scnfFCaS")) != -1)
     {
 	switch (o) {

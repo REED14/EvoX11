@@ -320,7 +320,7 @@ void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int 
     if(distort_y > 100) distort_y = 100;
 
     if(maskPict!=None)
-        maskPict = RoundedCorners(dpy, wid, hei, root, solid_white_picture(dpy, root), GlobalRadius);
+      maskPict = RoundedCorners(dpy, wid, hei, root, solid_white_picture(dpy, root), GlobalRadius*(hei>3*GlobalRadius));
 
     if(distort_x<0){
         XFixesSetPictureClipRegion (dpy, temp_p, 0, 0, region);

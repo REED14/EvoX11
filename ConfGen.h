@@ -27,6 +27,7 @@ int distort_y = 0;
 Window ConfigWin;
 
 int GlobalRadius = 20;
+double OPC = 0.85;
 
 //i just need this
 static Picture
@@ -58,6 +59,221 @@ solid_white_picture (Display *dpy, Window root)
     c.blue = 0xffff;
     XRenderFillRectangle (dpy, PictOpSrc, picture, &c, 0, 0, 1, 1);
     XFreePixmap (dpy, pixmap);
+    return picture;
+}
+
+//mask rounded corners for bkg
+Picture BkgRoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alpha, int radius){
+    Pixmap			pixmap;
+    Picture			picture;
+    XRenderColor		c, c1;
+
+    pixmap = XCreatePixmap (dpy, root, wid, hei, 32);
+    if (!pixmap)
+	    return None;
+
+    picture = XRenderCreatePicture (dpy, pixmap,
+				    XRenderFindStandardFormat (dpy, PictStandardARGB32),
+				    0,
+				    NULL);
+
+    if (!picture)
+    {
+        XFreePixmap (dpy, pixmap);
+        return None;
+    }
+
+    c.alpha = 0;
+    c.red = 0;
+    c.green = 0;
+    c.blue = 0;
+
+    
+    XRenderComposite(dpy, PictOpSrc, alpha, None, picture, 0, 0, 0, 0,
+                    0, 0, wid, hei);
+
+    ///left up
+    for(int posy = 0; posy<=radius; posy++){
+        int size_wid = (1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius;
+        XRenderFillRectangle (dpy, PictOpSrc, picture, &c, 0, posy, size_wid, 1);
+
+	//vertical antialiasing
+	if(posy>=radius/5){
+	  if(((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius)))))*radius-size_wid>0.3){  
+	    XRenderColor c2;
+
+	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
+
+	    c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+	  
+	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, size_wid, posy, 1, 1);
+	  }
+	}
+	//horizontal antialiasing
+	else {
+	  int size_wid_next = (1.0-sqrt(1-((radius-posy-1)*(radius-posy-1)*1.0/(radius*radius))))*radius;
+	  int swd = size_wid-size_wid_next;
+
+	  if(swd!=0)
+	  for(int i=size_wid_next; i<=size_wid; i++){
+	    double AliasingFactor;
+	    AliasingFactor = ((i-size_wid_next-1)*1.0/swd+(i-size_wid_next)*1.0/swd)/2;
+	      
+	    XRenderColor c2;
+	  
+	    c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+
+	    if(AliasingFactor>0)
+
+	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, i, posy, 1, 1);
+	  }
+	}
+    }
+
+    ///right up
+    for(int posy = 0; posy<=radius; posy++){
+        int size_wid = (1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius;
+
+        XRenderFillRectangle (dpy, PictOpSrc, picture, &c, wid-size_wid, posy, size_wid, 1);
+	
+	//vertical antialiasing
+	if(posy>=radius/5){
+	  if(((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius)))))*radius-size_wid>0.3){  
+	    XRenderColor c2;
+
+	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
+
+	    c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+	    
+	    if(AliasingFactor>0)
+	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-size_wid-1, posy, 1, 1);
+	  }
+	}
+	//horizontal antialiasing
+	else {
+	  int size_wid_next = (1.0-sqrt(1-((radius-posy-1)*(radius-posy-1)*1.0/(radius*radius))))*radius;
+	  int swd = size_wid-size_wid_next;
+
+	  if(swd!=0)
+	  for(int i=size_wid_next; i<=size_wid; i++){
+	    double AliasingFactor;
+	    AliasingFactor = ((i-size_wid_next-1)*1.0/swd+(i-size_wid_next)*1.0/swd)/2;
+	      
+	    XRenderColor c2;
+	  
+	    c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+
+	    if(AliasingFactor>0)
+	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-i-1, posy, 1, 1);
+	  }
+	}
+    }
+
+    ///left down
+    for(int posy = 0; posy<=radius; posy++){
+        int size_wid = (1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius;
+        XRenderFillRectangle (dpy, PictOpSrc, picture, &c, 0, hei-posy-1, size_wid, 1);
+		
+	//vertical antialiasing
+	if(posy>=radius/5){
+	  if(((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius)))))*radius-size_wid>0.3){  
+	    XRenderColor c2;
+
+	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
+
+	    //printf("%f\n", AliasingFactor);
+	    c2.alpha = AliasingFactor * 0xffff*(1-OPC);
+	    c2.red = AliasingFactor * 0xffff*(1-OPC);
+	    c2.green = AliasingFactor * 0xffff*(1-OPC);
+	    c2.blue = AliasingFactor * 0xffff*(1-OPC);
+
+	    if(AliasingFactor>0)
+	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, size_wid, hei-posy-1, 1, 1);
+	  }
+	}
+	
+	//horizontal antialiasing
+	else {
+	  int size_wid_next = (1.0-sqrt(1-((radius-posy-1)*(radius-posy-1)*1.0/(radius*radius))))*radius;
+	  int swd = size_wid-size_wid_next;
+
+	  if(swd!=0)
+	  for(int i=size_wid_next; i<=size_wid; i++){
+	    double AliasingFactor;
+	    AliasingFactor = ((i-size_wid_next-1)*1.0/swd+(i-size_wid_next)*1.0/swd)/2;
+	      
+	    XRenderColor c2;
+	  
+	    c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+	    c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+			
+	    if(AliasingFactor>0)
+	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, i, hei-posy-1, 1, 1);
+	  }
+	}
+    }
+
+    ///right down
+    for(int posy = 0; posy<=radius; posy++){
+        int size_wid = (1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius;
+        XRenderFillRectangle (dpy, PictOpSrc, picture, &c, wid-size_wid, hei-posy-1, size_wid, 1);
+        
+        //vertical antialiasing
+		if(posy>=radius/5){
+		  if(((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius)))))*radius-size_wid>0.3){  
+			XRenderColor c2;
+
+			double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
+
+			//printf("%f\n", AliasingFactor);
+			c2.alpha = AliasingFactor * 0xffff*(1-OPC);
+			c2.red = AliasingFactor * 0xffff*(1-OPC);
+			c2.green = AliasingFactor * 0xffff*(1-OPC);
+			c2.blue = AliasingFactor * 0xffff*(1-OPC);
+
+			if(AliasingFactor>=0)
+			  XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-size_wid-1, hei-posy-1, 1, 1);
+		  }
+		}
+		
+		//horizontal antialiasing
+		else {
+		  int size_wid_next = (1.0-sqrt(1-((radius-posy-1)*(radius-posy-1)*1.0/(radius*radius))))*radius;
+		  int swd = size_wid-size_wid_next;
+
+		  if(swd!=0)
+		  for(int i=size_wid_next; i<=size_wid; i++){
+			double AliasingFactor;
+			AliasingFactor = ((i-size_wid_next-1)*1.0/swd+(i-size_wid_next)*1.0/swd)/2;
+			  
+			XRenderColor c2;
+			
+			c2.alpha = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+			c2.red = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+			c2.green = AliasingFactor * 0xffff*(OPC)* AliasingFactor;
+			c2.blue = AliasingFactor * 0xffff*(OPC) * AliasingFactor;
+
+			if(AliasingFactor>=0)
+			  XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-i-1, hei-posy-1, 1, 1);
+		  }
+		}
+	}
+	
+    XFreePixmap(dpy, pixmap);
     return picture;
 }
 
@@ -109,10 +325,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 
 	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
 
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 	  
 	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, size_wid, posy, 1, 1);
 	  }
@@ -129,10 +345,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 	      
 	    XRenderColor c2;
 	  
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 
@@ -154,10 +370,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 
 	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
 
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 	    XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-size_wid-1, posy, 1, 1);
@@ -199,10 +415,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
 
 	    //printf("%f\n", AliasingFactor);
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, size_wid, hei-posy-1, 1, 1);
@@ -221,10 +437,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 	      
 	    XRenderColor c2;
 	  
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, i, hei-posy-1, 1, 1);
@@ -236,7 +452,7 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
     for(int posy = 0; posy<=radius; posy++){
         int size_wid = (1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius;
         XRenderFillRectangle (dpy, PictOpSrc, picture, &c, wid-size_wid, hei-posy-1, size_wid, 1);
-   		
+
 	//vertical antialiasing
 	if(posy>=radius/5){
 	  if(((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius)))))*radius-size_wid>0.3){  
@@ -245,10 +461,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 	    double AliasingFactor = 1-((1.0-sqrt(1-((radius-posy)*(radius-posy)*1.0/(radius*radius))))*radius-size_wid);
 
 	    //printf("%f\n", AliasingFactor);
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-size_wid-1, hei-posy-1, 1, 1);
@@ -267,10 +483,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
 	      
 	    XRenderColor c2;
 	  
-	    c2.alpha = AliasingFactor * 0xffff;
-	    c2.red = AliasingFactor * 0xffff;
-	    c2.green = AliasingFactor * 0xffff;
-	    c2.blue = AliasingFactor * 0xffff;
+	    c2.alpha = AliasingFactor * 0xffff*(OPC);
+	    c2.red = AliasingFactor * 0xffff*(OPC);
+	    c2.green = AliasingFactor * 0xffff*(OPC);
+	    c2.blue = AliasingFactor * 0xffff*(OPC);
 
 	    if(AliasingFactor>0)
 	      XRenderFillRectangle (dpy, PictOpSrc, picture, &c2, wid-i-1, hei-posy-1, 1, 1);
@@ -281,7 +497,6 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
     XFreePixmap(dpy, pixmap);
     return picture;
 }
-
 void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int y, int wid, int hei, int now, 
               Window root, int rw, int rh)
 {

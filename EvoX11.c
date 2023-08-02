@@ -103,6 +103,9 @@ typedef struct _win {
     /* for drawing translucent windows */
     XserverRegion	borderClip;
     struct _win		*prev_trans;
+    
+    //for background
+    Picture		bkgMaskPict;
 } win;
 
 typedef struct _conv {
@@ -1008,6 +1011,13 @@ paint_all (Display *dpy, XserverRegion region)
 	}
 
        	w->mode = WINDOW_ARGB;
+       	/*Atom property = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+	if (property != None) {
+		double opacity = 0.9; // Set opacity (0.0 to 1.0, where 0.0 is fully transparent and 1.0 is fully opaque)
+
+		unsigned long value = opacity * 0xffffffff;
+		XChangeProperty(dpy, w->id, property, XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&value, 1);
+	}*/
 	
 #if DEBUG_REPAINT
 	printf (" 0x%x", w->id);
@@ -1319,7 +1329,8 @@ paint_all (Display *dpy, XserverRegion region)
 			set_ignore (dpy, NextRequest (dpy));
 
 			if(PaintBlur && pb_pic && w->windowType!=winDockAtom && !in_trans && w->maskPict!=None){
-				XRenderComposite (dpy, PictOpOver, pb_pic, w->maskPict, rootBuffer,
+				if(w->bkgMaskPict == None) w->bkgMaskPict = BkgRoundedCorners(dpy, wid, hei, root, solid_picture (dpy, False, 1, 0, 0, 0), GlobalRadius*(hei>GlobalRadius*3));
+				XRenderComposite (dpy, PictOpOver, pb_pic, w->bkgMaskPict, rootBuffer,
 						x, y, 0, 0,
 						x, y, wid, hei);
 			}
@@ -1744,6 +1755,16 @@ add_win (Display *dpy, Window id, Window prev)
     *p = new;
     if (new->a.map_state == IsViewable)
 	map_win (dpy, id, new->damage_sequence - 1, True);
+	
+	Atom property = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+	if (property != None) {
+		double opacity = OPC; // Set opacity (0.0 to 1.0, where 0.0 is fully transparent and 1.0 is fully opaque)
+
+		unsigned long value = opacity * 0xffffffff;
+		XChangeProperty(dpy, new->id, property, XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&value, 1);
+	}
+	
+	new->bkgMaskPict = None;
 }
 
 static void
@@ -1860,6 +1881,9 @@ configure_win (Display *dpy, XConfigureEvent *ce)
 	if(w->maskPict != None)
 		XRenderFreePicture(dpy, w->maskPict);
 	w->maskPict = None;
+	if(w->bkgMaskPict != None)
+		XRenderFreePicture(dpy, w->bkgMaskPict);
+	w->bkgMaskPict = None;
 
 	//w->delMaskPict = 1;
 
@@ -2347,9 +2371,12 @@ main (int argc, char **argv)
 	pb_addr[0] = '\0';
 
 	
-    while ((o = getopt (argc, argv, "D:I:O:d:r:o:l:t:B:R:scnfFCaS")) != -1)
+    while ((o = getopt (argc, argv, "D:I:O:d:r:o:l:t:B:R:p:scnfFCaS")) != -1)
     {
 	switch (o) {
+	case 'p':
+		OPC = atof(optarg);
+		break;
 	case 'R':
 		GlobalRadius = atoi(optarg);
 		break;

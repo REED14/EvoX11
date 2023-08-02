@@ -49,4 +49,6 @@ make install
       Specify the absolute path of background png for transparent windows.
 -R rounded-corner-radius
       Specify the radius of the rounded corners of the windows. (default 20)
+-p opacity
+      Set global windows opacity (default .85)
 ```

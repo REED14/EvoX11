@@ -22,6 +22,7 @@ int time_conf;
 int is_conf = 0;
 int conf_depth_x;
 int conf_depth_y;
+int distort_dx, distort_dy;
 int distort_x = 0;
 int distort_y = 0;
 Window ConfigWin;
@@ -548,19 +549,30 @@ void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int 
 	r.width = rw;
 	r.height = rh;
 	XserverRegion region = XFixesCreateRegion (dpy, &r, 1);
-    
+
+
+	//printf("%d %d %d\n", conf_depth_x, conf_depth_y, distort_dx);
+	distort_dx = (distort_dx-conf_depth_x*10)/2;
+	distort_dy = (distort_dy-conf_depth_y*10)/2;
+	
     if(is_conf && now-time_conf<5){
-        distort_x = (distort_x*4-conf_depth_x*80)/8;
-        distort_y = (distort_y*4+conf_depth_y*80)/8;
+
+      distort_x = (distort_x*2+(distort_dx - distort_x)*(1+wid/1920/10))/2;
+      distort_y = (distort_y*2-(distort_dy + distort_y)*(1+hei/1080/10))/2;
+      
     }
-    else{
-        distort_x = (distort_x)/6;
-        distort_y = (distort_y)/6;
+    else if(now-time_conf>5 && now-time_conf<100){
+      distort_x = distort_x*(100-now+time_conf)/200;
+      distort_y = distort_y*(100-now+time_conf)/100;
+      distort_dx = distort_dy = 0;
     }
 
     if(distort_x > 300) distort_x = 300;
     if(distort_y > 100) distort_y = 100;
 
+    if(distort_x < -300) distort_x = -300;
+    if(distort_y < -100) distort_y = -100;
+    
     if(maskPict!=None)
       maskPict = RoundedCorners(dpy, wid, hei, root, solid_white_picture(dpy, root), GlobalRadius*(hei>3*GlobalRadius));
 

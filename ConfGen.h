@@ -525,9 +525,10 @@ Picture RoundedCorners(Display* dpy, int wid, int hei, Window root, Picture alph
     XFreePixmap(dpy, pixmap);
     return picture;
 }
-void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int y, int wid, int hei, int now, 
+void CompConf(Display *dpy, Picture p, Picture rb, int x, int y, int wid, int hei, int now, 
               Window root, int rw, int rh)
 {
+	Picture maskPict;
 	XRenderPictureAttributes	pa;
 	XRenderPictFormat		*format;
     format = XRenderFindStandardFormat (dpy, PictStandardARGB32);
@@ -573,8 +574,10 @@ void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int 
     if(distort_x < -300) distort_x = -300;
     if(distort_y < -100) distort_y = -100;
     
-    if(maskPict!=None)
-      maskPict = RoundedCorners(dpy, wid, hei, root, solid_white_picture(dpy, root), GlobalRadius*(hei>3*GlobalRadius));
+    //if(maskPict!=None)
+    XRenderFreePicture(dpy, maskPict);
+    Picture sw = solid_white_picture(dpy, root);
+    maskPict = RoundedCorners(dpy, wid, hei, root, sw, GlobalRadius*(hei>3*GlobalRadius));
 
     if(distort_x<0){
         XFixesSetPictureClipRegion (dpy, temp_p, 0, 0, region);
@@ -617,5 +620,6 @@ void CompConf(Display *dpy, Picture p, Picture rb, Picture maskPict, int x, int 
     XFreePixmap(dpy, temp_px);
     XRenderFreePicture(dpy, temp_p);
     XRenderFreePicture(dpy, maskPict);
+    XRenderFreePicture(dpy, sw);
     maskPict = None;
 }
